@@ -30,8 +30,7 @@ def price_BS(S, X, r, sigma, t):
     d2 = new_float(d1 - sigma*sqrt_t)
     c = new_float(S*cdf(d1)-X*exp(-r*t)*cdf(d2))
     return c
-        
+
 compiled = c99.compile(includes=['#include "math.h"'])
 for S in range(0,20):
-    print compiled.price_BS(S,10.0,0.2,0.5,90.0/250)
-
+    print(compiled.price_BS(S,10.0,0.2,0.5,90.0/250))

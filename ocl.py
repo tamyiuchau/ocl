@@ -19,6 +19,14 @@ try:
 except ImportError:
     pcl = False
 
+try:
+    from inspect import signature,isclass,Parameter,_empty
+    from collections import OrderedDict
+    class TypeMissingError(Exception):
+        pass
+except ImportError:
+    signature = False
+
 __all__ = ['Compiler', 'C99Handler', 'JavaScriptHandler', 'Device']
 
 locker = threading.Lock()
@@ -35,6 +43,7 @@ if python_version == 3:
 
     def map_node(node):
         return {'TryExcept': 'Try'}.get(node, node)
+    
 else:
     def get_arg(item):
         return item.id
@@ -460,11 +469,21 @@ class Compiler(object):
     def define(self, _prefix='', name=None, **types):
         if _prefix == 'kernel':
             _prefix = '__kernel '
-        types = self.handler.make_types(types)
 
-        def wrap(func, types=types, name=name, prefix=_prefix):
+        def wrap(func):
+            nonlocal name,types,_prefix
+            prefix=_prefix
             if name is None:
                 name = func.__name__
+            types = self.handler.make_types(types)
+            if signature:
+                classToStr={int:"int",float:"float",str:"char*",_empty:""}
+                params=OrderedDict([(k,(lambda x:classToStr[x] if isclass(x) else x)(v.annotation)) for k,v in signature(func).parameters.items()])#copy.deepcopy presently not working on mappingproxy
+                params.update(types)
+                types=params
+                print(types)
+            else:pass
+            types = self.handler.make_types(types)
             decompiled = decompile_func(func)
             self.functions[name] = dict(func=func,
                                         prefix=prefix,
